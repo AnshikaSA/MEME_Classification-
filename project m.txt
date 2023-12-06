@@ -1,0 +1,144 @@
+import os
+from PIL import Image
+
+def convert_resize_image(image_path, output_path, size):
+    # Open the image file
+    image = Image.open(image_path)
+
+    # Convert the image to RGBA format (to support transparency)
+    image = image.convert("RGBA")
+
+    # Resize the image
+    image = image.resize(size)
+
+    # Save the image as PNG format
+    output_filename = os.path.splitext(os.path.basename(image_path))[0] + ".png"
+    output_filepath = os.path.join(output_path, output_filename)
+    image.save(output_filepath, "PNG")
+
+    print(f"Converted and resized '{image_path}' -> '{output_filepath}'")
+
+def process_images(input_folder, output_folder, size):
+    # Create the output folder if it doesn't exist
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    # Iterate through all files and subfolders in the input folder
+    for root, dirs, files in os.walk(input_folder):
+        for file in files:
+            # Check if the file is an image file
+            if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp')):
+                image_path = os.path.join(root, file)
+                convert_resize_image(image_path, output_folder, size)
+
+# Define the input folder, output folder, and target size for resizing
+input_folder = "C:/Users/91837/OneDrive/Desktop/meme proj/Meme"
+output_folder = "C:/Users/91837/OneDrive/Desktop/meme proj/out1_meme"
+target_size = (500, 500)  # Width, Height
+
+# Process the images in the input folder and its subfolders
+process_images(input_folder, output_folder, target_size)
+
+
+
+#rename to seial number
+import os
+import shutil
+
+folder_path = 'C:/Users/91837/OneDrive/Desktop/meme proj/out1_meme'  
+serial_number = 1
+
+for filename in os.listdir(folder_path):
+    if filename.endswith('.png'):
+        new_name = str(serial_number) + '.png'
+        old_path = os.path.join(folder_path, filename)
+        new_path = os.path.join(folder_path, new_name)
+        shutil.move(old_path, new_path)
+        serial_number += 1
+
+import cv2
+import os
+import pytesseract
+from torchvision import models, transforms
+import torch
+import numpy as np
+
+
+
+pytesseract.pytesseract.tesseract_cmd = r"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+
+
+#pretrained img classification model
+model = models.resnet50(pretrained=True)
+model.eval()
+#img transformations
+preprocess = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize(256),
+    transforms.CenterCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+#ocr
+def ocr(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    text = pytesseract.image_to_string(gray)
+    print(text)
+    return text
+#image classification
+def classify_image(image_path):
+    # Load and preprocess the image
+    image = cv2.imread(image_path)
+    preprocessed_image = preprocess(image)
+
+    # Perform image classification
+    with torch.no_grad():
+        inputs = preprocessed_image.unsqueeze(0)
+        outputs = model(inputs)
+        _, predicted_idx = torch.max(outputs, 1)
+
+    # Perform OCR on the image
+    ocr_text = ocr(image)
+
+    # Classify based on OCR text
+    category = classify_text(ocr_text)
+
+    return category
+
+
+
+#text classification
+def classify_text(text):
+   
+    social_keywords = ["friend", "party", "fun", "socialize", "hangout", "gathering", "celebrate", "get together", "laughter", "joy", "festivity", "happiness", "companionship", "mingle", "friendly", "cheer", "entertainment", "hug", "memories", "celebration", "delightful", "enjoyment", "amusement", "merriment", "happiness", "jovial", "good times", "pleasure", "relax", "rejoice", "sociability", "partygoer", "festal", "sociable", "convivial", "jubilation", "lively", "cheerful", "fun-loving", "bond", "thrill", "entertainment", "vibrant", "festive", "conviviality", "laughter", "socializing", "sociable", "enjoy", "celebration", "reunite", "get-together", "happiness", "social event", "outgoing", "jubilant", "good company", "festival", "party animal", "unite", "good cheer", "cheerful", "relish", "fest", "festiveness", "lively atmosphere", "hearty", "festivities", "outgoing", "mirthful", "amiable", "companionable", "enjoyment", "celebrate", "social gathering", "lighthearted", "enjoy life", "festivities", "warmhearted", "shared joy", "lively company", "entertain", "party spirit", "joyousness", "sociable gathering", "pleasurable", "festive occasion", "effervescent", "heartwarming", "ecstasy", "vivacious", "animated", "heartening", "crowd", "banquet", "camaraderie", "revel", "excitement", "thrilling", "animated", "elation", "jubilant", "ebullient", "camaraderie", "spirited", "effusion", "elation", "jubilant", "affectionate", "warmhearted", "merrymaker", "festive", "exuberant", "joyfulness", "cordial", "festal", "exult", "glee", "jolly", "celebratory", "gay", "entertainment", "exultation", "exuberance", "affection", "gregarious", "jubilant", "get-together", "sociable", "exuberance", "reunion", "cherish", "merry-making", "ecstatic", "bliss", "jubilant", "ecstasy", "animated", "elation", "heartening", "exhilaration", "excitement", "cordiality", "festivities", "high-spirited", "vivacity", "effervescence", "zest", "heartfelt", "gleeful", "festal", "joyful", "exhilarating", "good mood", "laughter", "exhilaration", "thrill", "sociable", "lively gathering", "elation", "festive", "festive atmosphere", "jubilance", "joyous", "radiant", "festive spirit", "celebration", "enjoy life", "jubilation", "enthusiasm", "animated", "festivity", "cheerful", "gaiety", "cheerful", "elation", "mirth", "rejoicing", "spirited", "zestful", "animation", "merrymaking", "joyousness", "ecstasy", "mirthful", "zestful", "lively atmosphere", "cheerful", "joyousness", "exultation", "vivacious", "animated", "heartening", "crowd", "banquet", "camaraderie", "revel", "excitement", "thrilling", "animated", "camaraderie", "enthusiastic", "entertainment", "vibrant", "mirthfulness", "happiness", "blissful", "enjoyment", "entertainment", "jubilant", "joy", "entertain", "merry", "enthusiastic", "celebrations", "social", "delight", "pleasure", "festal", "jubilant", "festivities", "cheerful", "exuberant", "jovial", "enjoyment", "jubilation", "gregarious", "joyous", "fest", "socialize", "delight"]
+    education_keywords = ["study", "learning", "school", "knowledge", "education", "career", "academics", "achievement", "research", "growth", "development", "success", "future", "ambition", "professional", "goals", "dedication", "effort", "commitment", "improvement", "discipline", "learning", "knowledge", "progress", "motivation", "skill", "development", "aspiration", "training", "skills", "academic", "curiosity", "innovation", "intellect", "scholarship", "competence", "proficiency", "achievement", "ambition", "inspiration", "perseverance", "dedication", "challenge", "honor", "perseverance", "accomplishment", "dream", "passion", "insight", "qualification", "enrichment", "dedication", "professionalism", "experience", "specialization", "expertise", "qualification", "specialization", "expertise", "learning", "development", "research", "knowledge", "growth", "improvement", "success", "career", "ambition", "curiosity", "innovation", "intellect", "scholarship", "competence", "proficiency", "achievement", "ambition", "inspiration", "perseverance", "dedication", "challenge", "honor", "perseverance", "accomplishment", "dream", "passion", "insight", "qualification", "enrichment", "dedication", "professionalism", "experience", "specialization", "expertise", "qualification", "specialization", "expertise", "learning", "development", "research", "knowledge", "growth", "improvement", "success", "career", "ambition", "curiosity", "innovation", "intellect", "scholarship", "competence", "proficiency", "achievement", "ambition", "inspiration", "perseverance", "dedication", "challenge", "honor", "perseverance", "accomplishment", "dream", "passion", "insight", "qualification", "enrichment", "dedication", "professionalism", "experience", "specialization", "expertise", "qualification", "specialization", "expertise", "learning", "development", "research", "knowledge", "growth", "improvement", "success", "career", "ambition", "curiosity", "innovation", "intellect", "scholarship", "competence", "proficiency", "achievement", "ambition", "inspiration", "perseverance", "dedication", "challenge", "honor", "perseverance", "accomplishment", "dream", "passion", "insight", "qualification", "enrichment", "dedication", "professionalism", "experience", "specialization", "expertise", "qualification", "specialization", "expertise", "learning", "development", "research", "knowledge", "growth", "improvement", "success", "career", "ambition", "curiosity", "innovation", "intellect", "scholarship", "competence", "proficiency", "achievement", "ambition", "inspiration", "perseverance", "dedication", "challenge", "honor", "perseverance", "accomplishment", "dream", "passion", "insight", "qualification", "enrichment", "dedication", "professionalism", "experience", "specialization", "expertise", "qualification", "specialization", "expertise", "learning", "development", "research", "knowledge", "growth", "improvement", "success", "career", "ambition", "curiosity", "innovation", "intellect", "scholarship", "competence", "proficiency", "achievement", "ambition", "inspiration", "perseverance", "dedication", "challenge", "honor", "perseverance", "accomplishment", "dream", "passion", "insight", "qualification", "enrichment", "dedication", "professionalism", "experience", "specialization", "expertise"]
+    pop_culture_keywords = ["celebrity", "music", "movie", "entertainment", "icon", "superstar", "fan", "fame", "culture", "idol", "film", "celebrity", "artist", "cinema", "star", "cinematic", "entertainment", "stardom", "filmography", "popular", "musical", "blockbuster", "fandom", "glamour", "reputation", "hit", "critics", "audience", "performance", "reality", "show", "award", "nominated", "soundtrack", "film", "directors", "sequel", "premiere", "action", "drama", "comedy", "romance", "genre", "box office", "screenplay", "plot", "characters", "celebrity", "music", "movie", "entertainment", "icon", "superstar", "fan", "fame", "culture", "idol", "film", "celebrity", "artist", "cinema", "star", "cinematic", "entertainment", "stardom", "filmography", "popular", "musical", "blockbuster", "fandom", "glamour", "reputation", "hit", "critics", "audience", "performance", "reality", "show", "award", "nominated", "soundtrack", "film", "directors", "sequel", "premiere", "action", "drama", "comedy", "romance", "genre", "box office", "screenplay", "plot", "characters", "celebrity", "music", "movie", "entertainment", "icon", "superstar", "fan", "fame", "culture", "idol", "film", "celebrity", "artist", "cinema", "star", "cinematic", "entertainment", "stardom", "filmography", "popular", "musical", "blockbuster", "fandom", "glamour", "reputation", "hit", "critics", "audience", "performance", "reality", "show", "award", "nominated", "soundtrack", "film", "directors", "sequel", "premiere", "action", "drama", "comedy", "romance", "genre", "box office", "screenplay", "plot", "characters", "celebrity", "music", "movie", "entertainment", "icon", "superstar", "fan", "fame", "culture", "idol", "film", "celebrity", "artist", "cinema", "star", "cinematic", "entertainment", "stardom", "filmography", "popular", "musical", "blockbuster", "fandom", "glamour", "reputation", "hit", "critics", "audience", "performance", "reality", "show", "award", "nominated", "soundtrack", "film", "directors", "sequel", "premiere", "action", "drama", "comedy", "romance", "genre", "box office", "screenplay", "plot", "characters", "celebrity", "music", "movie", "entertainment", "icon", "superstar", "fan", "fame", "culture", "idol", "film", "celebrity", "artist", "cinema", "star", "cinematic", "entertainment", "stardom", "filmography", "popular", "musical", "blockbuster", "fandom", "glamour", "reputation", "hit", "critics", "audience", "performance", "reality", "show", "award", "nominated", "soundtrack", "film", "directors", "sequel", "premiere", "action", "drama", "comedy", "romance", "genre", "box office", "screenplay", "plot", "characters", "celebrity", "music", "movie", "entertainment", "icon", "superstar", "fan", "fame", "culture", "idol", "film", "celebrity", "artist", "cinema", "star", "cinematic", "entertainment", "stardom", "filmography", "popular", "musical", "blockbuster", "fandom", "glamour", "reputation", "hit", "critics", "audience", "performance", "reality", "show", "award", "nominated", "soundtrack", "film", "directors", "sequel", "premiere", "action", "drama", "comedy", "romance", "genre", "box office", "screenplay", "plot", "characters"]
+    sports_keywords =["football", "basketball", "soccer", "baseball", "hockey", "tennis", "golf", "swimming", "athletics", "team", "competition", "score", "victory", "champion", "training", "athlete", "coach", "stadium", "tournament", "sportsmanship", "strategy", "fitness", "sports", "game", "match", "rivalry", "fans", "athlete", "goal", "race", "training", "champion", "teamwork", "coach", "competition", "fitness", "athlete", "tournament", "stadium", "victory", "goal", "sportsmanship", "game", "strategy", "match", "rivalry", "athlete", "sports", "score", "champion", "race", "training", "team", "competition", "fitness", "goal", "stadium", "tournament", "athlete", "strategy", "victory", "sportsmanship", "coach", "game", "race", "match", "score", "rivalry", "goal", "team", "champion", "training", "athlete", "competition", "stadium", "tournament", "victory", "sportsmanship", "strategy", "fitness", "sports", "game", "match", "rivalry", "fans", "athlete", "goal", "race", "training", "champion", "teamwork", "coach", "competition", "fitness", "athlete", "tournament", "stadium", "victory", "goal", "sportsmanship", "game", "strategy", "match", "rivalry", "athlete", "sports", "score", "champion", "race", "training", "team", "competition", "fitness", "goal", "stadium", "tournament", "athlete", "strategy", "victory", "sportsmanship", "coach", "game", "race", "match", "score", "rivalry", "goal", "team", "champion", "training", "athlete", "competition", "stadium", "tournament", "victory", "sportsmanship", "strategy", "fitness", "sports", "game", "match", "rivalry", "fans", "athlete", "goal", "race", "training", "champion", "teamwork", "coach", "competition", "fitness", "athlete", "tournament", "stadium", "victory", "goal", "sportsmanship", "game", "strategy", "match", "rivalry", "athlete", "sports", "score", "champion", "race", "training", "team", "competition", "fitness", "goal", "stadium", "tournament", "athlete", "strategy", "victory", "sportsmanship", "coach", "game", "race", "match", "score", "rivalry", "goal", "team", "champion", "training", "athlete", "competition", "stadium", "tournament", "victory", "sportsmanship", "strategy", "fitness", "sports", "game", "match", "rivalry", "fans", "athlete", "goal", "race", "training", "champion", "teamwork", "coach", "competition", "fitness", "athlete", "tournament", "stadium", "victory", "goal", "sportsmanship", "game", "strategy", "match", "rivalry", "athlete", "sports", "score", "champion", "race", "training", "team", "competition", "fitness", "goal", "stadium", "tournament", "athlete", "strategy", "victory", "sportsmanship", "coach", "game", "race", "match", "score", "rivalry", "goal", "team", "champion", "training", "athlete", "competition", "stadium", "tournament", "victory", "sportsmanship", "strategy", "fitness", "sports", "game", "match", "rivalry", "fans", "athlete", "goal", "race", "training", "champion", "teamwork", "coach", "competition", "fitness", "athlete", "tournament", "stadium", "victory", "goal", "sportsmanship", "game", "strategy", "match", "rivalry", "athlete", "sports", "score", "champion", "race", "training", "team", "competition", "fitness", "goal", "stadium", "tournament", "athlete", "strategy", "victory", "sportsmanship", "coach", "game", "race", "match", "score", "rivalry", "goal", "team", "champion", "training", "athlete", "competition", "stadium", "tournament"]
+    political_keywords =["Indian politics", "government of India", "Indian Parliament", "Prime Minister", "President of India", "Lok Sabha", "Rajya Sabha", "Indian elections", "political parties in India", "BJP", "Congress Party", "Aam Aadmi Party", "Narendra Modi", "Rahul Gandhi", "Amit Shah", "Sonia Gandhi", "Indian National Congress", "Bharatiya Janata Party", "Indian democracy", "Indian political system", "Indian political leaders", "Indian politics and governance", "Indian political landscape", "Indian political history", "Indian political ideologies", "Indian state governments", "Indian federalism", "Indian political developments", "Indian political debates", "Indian public policy", "Indian political reforms", "Indian electoral system", "Indian political campaigns", "Indian political agenda", "Indian political analysis", "Indian political theory", "Indian political commentators", "Indian political behavior", "Indian political issues", "Indian political participation", "Indian political activism", "Indian political reforms", "Indian political movements", "Indian political structure", "Indian governance", "Indian political philosophy", "Indian political history", "Indian political sociology", "Indian political culture", "Indian political economy", "Indian political science", "Indian political ethics", "Indian political institutions", "Indian political studies", "Indian political thinkers", "Indian political developments", "Indian political scenarios", "Indian political policies", "Indian political agendas", "Indian political ideology", "Indian political scenario", "Indian political perspectives", "Indian political stances", "Indian political beliefs", "Indian political stand", "Indian political principles", "Indian political dynamics", "Indian political landscape", "Indian political sphere", "Indian political spectrum", "Indian political climate", "Indian political environment", "Indian political climate", "Indian political atmosphere", "Indian political backdrop", "Indian political context", "Indian political backdrop", "Indian political milieu", "Indian political setting", "Indian political stage", "Indian political arena", "Indian political platform", "Indian political arena", "Indian political theater", "Indian political landscape", "Indian political canvas", "Indian political scene", "Indian political field", "Indian political ground", "Indian political space", "Indian political domain", "Indian political realm", "Indian political territory", "Indian political kingdom", "Indian political domain","government", "election", "policy", "politics", "democracy", "leadership", "voting", "citizenship", "politician", "legislation", "campaign", "public", "governance", "political party", "ideology", "public policy", "political process", "political system", "political science", "power", "authority", "lobbying", "activism", "public affairs", "political debate", "civic", "administration", "governing", "politicking", "policy-making", "bipartisan", "campaigning", "legislative", "political agenda", "political movement", "governing body", "political discourse", "civil service", "political ideology", "party platform", "electorate", "political leadership", "political landscape", "public office", "political reform", "political analysis", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform", "political behavior", "political issues", "political participation", "political theory", "political commentator", "political platform"]
+    text_lower = text.lower()
+    if any(keyword in text_lower for keyword in social_keywords):
+        return 'Social'
+    elif any(keyword in text_lower for keyword in education_keywords):
+        return 'EducationAndCareer'
+    elif any(keyword in text_lower for keyword in pop_culture_keywords):
+        return 'Pop Culture'
+    elif any(keyword in text_lower for keyword in sports_keywords):
+        return 'Sports'
+    elif any(keyword in text_lower for keyword in political_keywords):
+        return 'Political'
+    else:
+        return 'Misc'
+    
+#classifying each meme
+import os
+
+image_folder = 'C:/Users/91837/OneDrive/Desktop/meme proj/out1_meme'
+categories = ['Social', 'EducationAndCareer', 'Pop Culture', 'Sports', 'Political', 'Misc']
+
+for filename in os.listdir(image_folder):
+    if filename.endswith('.jpg') or filename.endswith('.png'):
+        image_path = os.path.join(image_folder, filename)
+        category = classify_image(image_path)
+        print(f'{filename}: {category}')
+
+
